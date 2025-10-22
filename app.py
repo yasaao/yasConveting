@@ -91,7 +91,7 @@ def process_single_file_or_zip(file_id, file_info, target_format):
             # Memproses ZIP
             with zipfile.ZipFile(zip_input_stream, 'r') as zip_in:
                 # Memberi nama file ZIP output dengan format yang diminta
-                output_filename = f"{original_filename_root}_yasConvert!_{target_format}.zip"
+                output_filename = f"{original_filename_root}_yasConverting_{target_format}.zip"
 
                 with zipfile.ZipFile(zip_output_stream, 'w', zipfile.ZIP_DEFLATED) as zip_out:
                     
@@ -136,7 +136,7 @@ def process_single_file_or_zip(file_id, file_info, target_format):
             if not converted_stream:
                 raise Exception("Gagal mengonversi gambar. Lihat console server untuk detail.")
                 
-            output_filename = f"{original_filename_root}_converted.{target_format}"
+            output_filename = f"{original_filename_root}_yasConverting_.{target_format}"
             
             file_info['converted_data'] = converted_stream.getvalue()
             file_info['download_name'] = output_filename
