@@ -17,7 +17,7 @@ from PIL import Image
 # --------------------------
 app = Flask(__name__)
 # Ganti dengan kunci rahasia unik Anda
-app.config['SECRET_KEY'] = 'yasabcdefghijklmno' # <--- GANTI TEKS INI
+app.config['SECRET_KEY'] = 'yasabcdefghijklmnooaowowjsnxmxopqpowdixjxnzkapqpqowoeoeodjxxnnxospwodkxnccnxoeowosn' # <--- GANTI TEKS INI
 app.config['PERMANENT_SESSION_LIFETIME'] = 3600
 
 # Storage In-Memory: Data file sementara yang diupload
