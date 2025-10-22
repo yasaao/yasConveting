@@ -7,7 +7,7 @@ import uuid
 import os # Diperlukan untuk os.path.splitext
 
 from flask import Flask, render_template, request, jsonify, send_file, session
-from PIL import Image, ImagePalette # <-- Tambahkan ImagePalette (opsional, tapi baik untuk kejelasan)
+from PIL import Image
 
 # Vercel tidak mendukung threading untuk polling/background jobs.
 # Proses akan dijalankan secara sinkron di endpoint /start_conversion.
@@ -17,12 +17,13 @@ from PIL import Image, ImagePalette # <-- Tambahkan ImagePalette (opsional, tapi
 # --------------------------
 app = Flask(__name__)
 # Ganti dengan kunci rahasia unik Anda
-# JANGAN GUNAKAN NILAI DEFAULT INI UNTUK PRODUKSI, GANTI DENGAN STRING ACAK YANG KUAT!
-app.config['SECRET_KEY'] = 'yasabcdefghijklmnooaowowjsnxmxopqpowdixjxnzkapqpqowoeoeodjxxnnxospwodkxnccnxoeowosn' 
+app.config['SECRET_KEY'] = 'yasabcdefghijklmnooaowowjsnxmxopqpowdixjxnzkapqpqowoeoeodjxxnnxospwodkxnccnxoeowosn' # <--- GANTI TEKS INI
 app.config['PERMANENT_SESSION_LIFETIME'] = 3600
 
 # Storage In-Memory: Data file sementara yang diupload
-# Di Vercel, ini akan di-reset setelah endpoint selesai.
+# Di Vercel, ini akan di-reset setelah endpoint selesai, jadi
+# kita harus pastikan semua data yang dibutuhkan dikelola dalam satu request (misalnya convert)
+# atau di-handle via Session (untuk file_id) dan In-Memory (untuk data konversi per-sesi).
 TEMP_STORAGE = {} 
 
 MIMETYPE_MAP = {
@@ -35,16 +36,15 @@ MIMETYPE_MAP = {
 # FUNGSI UTILITAS KONVERSI
 # --------------------------
 def convert_image(img_stream, target_format):
-    """Mengonversi stream gambar (BytesIO) ke format target, termasuk BMP 8-bit Indexed."""
+    """Mengonversi stream gambar (BytesIO) ke format target."""
     try:
         img = Image.open(img_stream)
         output_stream = io.BytesIO()
         save_format = target_format.upper()
         
         # --- LOGIKA KONVERSI DENGAN PENGECEKAN MODE GAMBAR ---
-        
+        # Logika asli Anda sudah cukup baik dan dipertahankan.
         if save_format == 'PNG':
-            # Logika standar PNG (mempertahankan transparansi)
             if 'A' in img.mode: 
                 img = img.convert('RGBA')
             elif img.mode == 'P' and 'transparency' in img.info:
@@ -54,21 +54,11 @@ def convert_image(img_stream, target_format):
             img.save(output_stream, 'PNG')
             
         elif save_format == 'BMP':
-            # LOGIKA BMP 8-BIT INDEXED (Mode 'P') untuk Modding CS 1.6
-            
-            # 1. Pastikan gambar dalam mode RGB/RGBA terlebih dahulu agar konversi ke palet optimal
-            if img.mode not in ('RGB', 'RGBA', 'L'):
-                 img = img.convert('RGB')
-                 
-            # 2. Paksa konversi ke mode 'P' (Paletted/Indexed Color) 8-bit
-            # Menggunakan palet ADAPTIVE untuk kuantisasi warna terbaik (256 warna)
-            img_paletted = img.convert('P', palette=Image.Palette.ADAPTIVE, colors=256)
-            
-            # 3. Simpan sebagai BMP
-            img_paletted.save(output_stream, 'BMP')
-            
+            if img.mode not in ('RGB', 'L'):
+                img = img.convert('RGB')
+            img.save(output_stream, 'BMP')
+
         elif save_format == 'TGA':
-            # Logika standar TGA (mempertahankan transparansi)
             if 'A' in img.mode:
                  img = img.convert('RGBA')
             elif img.mode != 'RGB':
@@ -101,7 +91,7 @@ def process_single_file_or_zip(file_id, file_info, target_format):
             # Memproses ZIP
             with zipfile.ZipFile(zip_input_stream, 'r') as zip_in:
                 # Memberi nama file ZIP output dengan format yang diminta
-                output_filename = f"{original_filename_root}_yasConverting{target_format}.zip"
+                output_filename = f"{original_filename_root}_yasConverting_{target_format}.zip"
 
                 with zipfile.ZipFile(zip_output_stream, 'w', zipfile.ZIP_DEFLATED) as zip_out:
                     
@@ -115,7 +105,7 @@ def process_single_file_or_zip(file_id, file_info, target_format):
                         if filename.endswith('/'):
                             continue
 
-                        # Logika sederhana untuk cek gambar
+                        # Logika sederhana untuk cek gambar (mimetypes tidak selalu tersedia/akurat)
                         if any(filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tga', '.webp', '.tiff']):
                             try:
                                 image_data = zip_in.read(filename)
@@ -146,7 +136,7 @@ def process_single_file_or_zip(file_id, file_info, target_format):
             if not converted_stream:
                 raise Exception("Gagal mengonversi gambar. Lihat console server untuk detail.")
                 
-            output_filename = f"{original_filename_root}_converted.{target_format}"
+            output_filename = f"{original_filename_root}_yasConverting_.{target_format}"
             
             file_info['yasConverting_data'] = converted_stream.getvalue()
             file_info['yasConverting_name'] = output_filename
@@ -170,6 +160,10 @@ def process_single_file_or_zip(file_id, file_info, target_format):
 def index():
     # Bersihkan session saat kembali ke halaman utama
     session.pop('uploaded_files', None)
+    # Hapus juga semua file di TEMP_STORAGE untuk menghemat memori
+    # Note: Di Vercel/serverless, ini tidak terlalu penting karena TEMP_STORAGE
+    # akan hilang setelah waktu idle singkat/request selesai.
+    # TEMP_STORAGE.clear() 
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
@@ -179,9 +173,11 @@ def upload_file():
         return jsonify({'success': False, 'message': 'Tidak ada file dipilih'}), 400
     
     uploaded_file = request.files['file']
+    # Gunakan UUID standar untuk file_id unik
     file_id = str(uuid.uuid4())
     
     try:
+        # Coba membaca file (maksimum size tergantung Vercel, biasanya < 5MB-50MB)
         file_bytes = uploaded_file.read()
         if not file_bytes:
              return jsonify({'success': False, 'message': 'File kosong atau gagal dibaca'}), 400
@@ -189,7 +185,8 @@ def upload_file():
         print(f"!!! GAGAL MEMBACA FILE DARI REQUEST: {e}")
         return jsonify({'success': False, 'message': f'File terlalu besar atau error server saat upload: {e}'}), 500
 
-    # Simpan data file di memori. 
+    # Simpan data file di memori. File harus disimpan per sesi agar bisa diakses
+    # pada proses konversi berikutnya.
     TEMP_STORAGE[file_id] = {
         'filename': uploaded_file.filename,
         'data': file_bytes,
@@ -225,7 +222,10 @@ def remove_file(file_id):
 
 @app.route('/start_conversion', methods=['POST'])
 def start_conversion():
-    """Melakukan konversi secara sinkron (sekuensial) di endpoint Vercel."""
+    """
+    Melakukan konversi secara sinkron (sekuensial) di endpoint Vercel.
+    Menghilangkan Job Polling.
+    """
     data = request.get_json()
     target_format = data.get('format', 'png').lower()
     file_ids = data.get('file_ids', [])
@@ -248,6 +248,9 @@ def start_conversion():
         # Lakukan pemrosesan
         result = process_single_file_or_zip(file_id, file_info, target_format)
         results.append(result)
+        
+        # Tambahkan delay singkat jika diperlukan untuk mengurangi beban CPU (opsional)
+        # time.sleep(0.1) 
         
     # Setelah semua file diproses, kembalikan hasil secara langsung
     return jsonify({
