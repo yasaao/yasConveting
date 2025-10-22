@@ -125,9 +125,9 @@ def process_single_file_or_zip(file_id, file_info, target_format):
                                 
             zip_output_stream.seek(0)
             
-            file_info['converted_data'] = zip_output_stream.getvalue()
-            file_info['download_name'] = output_filename
-            file_info['converted_mime'] = 'application/zip'
+            file_info['yasConverting_data'] = zip_output_stream.getvalue()
+            file_info['yasConverting_name'] = output_filename
+            file_info['yasConverting_mime'] = 'application/zip'
             
         else:
             # Logika Konversi File Tunggal
@@ -138,9 +138,9 @@ def process_single_file_or_zip(file_id, file_info, target_format):
                 
             output_filename = f"{original_filename_root}_yasConverting_.{target_format}"
             
-            file_info['converted_data'] = converted_stream.getvalue()
-            file_info['download_name'] = output_filename
-            file_info['converted_mime'] = MIMETYPE_MAP.get(target_format, 'application/octet-stream')
+            file_info['yasConverting_data'] = converted_stream.getvalue()
+            file_info['yasConverting_name'] = output_filename
+            file_info['yasConverting_mime'] = MIMETYPE_MAP.get(target_format, 'application/octet-stream')
 
         # Berhasil
         file_info['status'] = 'completed'
