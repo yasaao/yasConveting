@@ -35,7 +35,7 @@
                 <h1 class="text-lg font-extrabold text-white tracking-tight">RANK CHANGER</h1>
                 <div class="flex items-center gap-1.5 mt-0.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse"></span>
-                    <p class="text-[10px] text-slate-400 font-bold tracking-wider">ALL FORMAT + RESIZE</p>
+                    <p class="text-[10px] text-slate-400 font-bold tracking-wider">ALL FORMAT TOOLS</p>
                 </div>
             </div>
             <button onclick="toggleMenu()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center">
@@ -66,27 +66,31 @@
                     </div>
                 </div>
 
-                <!-- BACK: PREVIEW -->
+                <!-- BACK: PREVIEW & SETTINGS -->
                 <div class="absolute inset-0 backface-hidden rotate-y-180 bg-[#020617] rounded-xl border-2 border-pink-500/30 flex flex-col overflow-hidden">
                     <div class="p-3 bg-slate-900/80 border-b border-slate-800 flex justify-between items-center z-10 flex-shrink-0">
                         <span class="text-xs font-bold text-white truncate max-w-[120px]" id="previewTitle">file.png</span>
                         
-                        <!-- TOMBOL DI BELAKANG -->
                         <div class="flex gap-2">
-                            <!-- Tombol Resize (Sebelah Kiri X) -->
-                            <button onclick="toggleResize()" class="w-6 h-6 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-slate-700 transition-colors" title="Resize Image">
+                            <!-- TOMBOL RESIZE HANYA ADA DISINI -->
+                            <button onclick="toggleResize()" class="w-6 h-6 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-pink-600 transition-colors" title="Resize Image">
                                 <i class="fa-solid fa-ruler-combined text-[10px]"></i>
                             </button>
-                            <!-- Tombol Close (X) -->
+                            <!-- TOMBOL CLOSE -->
                             <button onclick="flipBack()" class="w-6 h-6 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-red-500 transition-colors">
                                 <i class="fa-solid fa-xmark text-xs"></i>
                             </button>
                         </div>
                     </div>
                     
-                    <div class="flex-1 flex items-center justify-center p-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+PHBhdGggZD0iTTAgMEg1VjVIMFpNNSA1SDEwVjEwSDVaIiBmaWxsPSIjMWUyOTNiIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')]">
+                    <div class="flex-1 flex items-center justify-center p-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+PHBhdGggZD0iTTAgMEg1VjVIMFpNNSA1SDEwVjEwSDVaIiBmaWxsPSIjMWUyOTNiIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')] relative">
                         <img id="previewImage" class="max-w-full max-h-full object-contain shadow-lg rounded" alt="Preview">
                         <div id="previewIcon" class="hidden text-center"><i class="fa-solid fa-file-zipper text-5xl text-pink-500"></i></div>
+                        
+                        <!-- Indikator Resize Active -->
+                        <div id="resizeBadge" class="hidden absolute bottom-4 bg-pink-500/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg">
+                            RESIZED
+                        </div>
                     </div>
                 </div>
 
@@ -98,29 +102,20 @@
             
             <div class="mb-3">
                 <div class="flex justify-between items-end mb-1 px-1">
-                    <label class="text-[10px] font-bold text-slate-500 uppercase">Settings</label>
-                    <span id="resizeLabel" class="text-[10px] text-pink-500 font-bold hidden">RESIZE ACTIVE</span>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Target Format</label>
                 </div>
                 
-                <div class="flex gap-2">
-                    <!-- Format Dropdown -->
-                    <div class="relative flex-1">
-                        <select id="formatSelect" class="w-full bg-[#020617] text-white text-xs font-bold border border-slate-700 rounded-xl py-3 px-4 appearance-none focus:border-pink-500 focus:outline-none uppercase tracking-wider cursor-pointer hover:border-slate-500 transition-colors">
-                            <option value="bmp">BMP (CS 1.6)</option>
-                            <option value="tga">TGA (VGUI)</option>
-                            <option value="png">PNG (HD)</option>
-                            <option value="jpg">JPG</option>
-                            <option value="ico">ICO</option>
-                            <option value="tiff">TIFF</option>
-                            <option value="webp">WEBP</option>
-                        </select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"><i class="fa-solid fa-chevron-down"></i></div>
-                    </div>
-
-                    <!-- Tombol Resize (Depan) -->
-                    <button onclick="toggleResize()" class="w-12 bg-[#020617] border border-slate-700 hover:border-pink-500 text-slate-400 hover:text-white rounded-xl flex items-center justify-center transition-colors" title="Resize All">
-                        <i class="fa-solid fa-ruler-combined"></i>
-                    </button>
+                <div class="relative">
+                    <select id="formatSelect" class="w-full bg-[#020617] text-white text-xs font-bold border border-slate-700 rounded-xl py-3 px-4 appearance-none focus:border-pink-500 focus:outline-none uppercase tracking-wider cursor-pointer hover:border-slate-500 transition-colors">
+                        <option value="bmp">BMP (CS 1.6)</option>
+                        <option value="tga">TGA (VGUI)</option>
+                        <option value="png">PNG (HD)</option>
+                        <option value="jpg">JPG</option>
+                        <option value="ico">ICO</option>
+                        <option value="tiff">TIFF</option>
+                        <option value="webp">WEBP</option>
+                    </select>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"><i class="fa-solid fa-chevron-down"></i></div>
                 </div>
             </div>
 
@@ -137,7 +132,7 @@
     <!-- RESIZE MODAL (POP UP) -->
     <div id="resizeOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center" onclick="toggleResize()">
         <div class="bg-[#0f172a] w-64 rounded-2xl border border-slate-700 p-5 text-center transform scale-95 transition-all shadow-2xl" onclick="event.stopPropagation()">
-            <h2 class="text-white font-bold mb-4 tracking-widest text-sm border-b border-slate-800 pb-3">RESIZE IMAGE</h2>
+            <h2 class="text-white font-bold mb-4 tracking-widest text-sm border-b border-slate-800 pb-3">RESIZE SETTINGS</h2>
             
             <div class="flex items-center gap-2 mb-4">
                 <div class="flex-1">
@@ -151,14 +146,19 @@
                 </div>
             </div>
             
-            <button onclick="applyResize()" class="w-full bg-[#db2777] text-white font-bold py-2 rounded-xl text-xs mb-2">APPLY</button>
-            <button onclick="resetResize()" class="w-full bg-slate-800 text-slate-400 font-bold py-2 rounded-xl text-xs">RESET (ORIGINAL)</button>
+            <!-- DUA TOMBOL PILIHAN -->
+            <div class="space-y-2">
+                <button onclick="applyResize('single')" class="w-full bg-[#db2777] hover:bg-pink-600 text-white font-bold py-2 rounded-xl text-xs">APPLY (THIS FILE)</button>
+                <button onclick="applyResize('all')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-pink-500 text-white font-bold py-2 rounded-xl text-xs">APPLY TO ALL FILES</button>
+            </div>
+            
+            <button onclick="resetResize()" class="mt-3 text-[10px] text-slate-500 hover:text-white underline">RESET TO ORIGINAL</button>
         </div>
     </div>
 
     <!-- MENU MODAL -->
     <div id="menuOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center" onclick="toggleMenu()">
-        <div class="bg-[#0f172a] w-64 rounded-2xl border border-slate-700 p-5 text-center transform scale-95 transition-all shadow-2xl" onclick="event.stopPropagation()">
+        <div id="menuBox" class="bg-[#0f172a] w-64 rounded-2xl border border-slate-700 p-5 text-center transform scale-95 opacity-0 transition-all shadow-2xl" onclick="event.stopPropagation()">
             <h2 class="text-white font-bold mb-5 tracking-widest text-sm border-b border-slate-800 pb-3">MENU</h2>
             <a href="https://www.youtube.com/@yasaaoursea" target="_blank" class="flex items-center justify-center gap-3 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-xs mb-3 transition-colors"><i class="fa-brands fa-youtube text-lg"></i> YOUTUBE</a>
             <a href="https://sociabuzz.com/yasaaoursea/support" target="_blank" class="flex items-center justify-center gap-3 w-full bg-[#020617] border border-slate-700 hover:border-pink-500 text-white font-bold py-3 rounded-xl text-xs mb-3 transition-colors"><i class="fa-solid fa-heart text-pink-500"></i> SUPPORT / DONATE</a>
@@ -176,44 +176,67 @@
         const previewIcon = document.getElementById('previewIcon');
         const previewTitle = document.getElementById('previewTitle');
         const resizeOverlay = document.getElementById('resizeOverlay');
-        const resizeLabel = document.getElementById('resizeLabel');
+        const resizeBadge = document.getElementById('resizeBadge');
         const widthInput = document.getElementById('widthInput');
         const heightInput = document.getElementById('heightInput');
 
         let filesData = []; 
+        let activeIndex = -1; // Menyimpan index file yang sedang dibuka di preview
         let isProcessing = false;
-        let isProcessDone = false; // Status konversi selesai
-        let resizeConfig = { w: null, h: null }; // Global resize config
+        let isProcessDone = false;
 
-        // --- RESIZE LOGIC ---
+        // --- RESIZE LOGIC (UPDATED) ---
         function toggleResize() {
+            // Load current file settings into inputs when opening
+            if (resizeOverlay.classList.contains('hidden') && activeIndex > -1) {
+                const current = filesData[activeIndex].resize || { w: '', h: '' };
+                widthInput.value = current.w;
+                heightInput.value = current.h;
+            }
             resizeOverlay.classList.toggle('hidden');
         }
-        function applyResize() {
+
+        function applyResize(scope) {
             const w = widthInput.value;
             const h = heightInput.value;
-            if(w && h) {
-                resizeConfig = { w: w, h: h };
-                resizeLabel.classList.remove('hidden');
-                resizeLabel.textContent = `RESIZE: ${w}x${h}`;
+            const resizeVal = (w && h) ? { w: w, h: h } : null;
+
+            if (scope === 'all') {
+                // Terapkan ke SEMUA file
+                filesData.forEach(f => f.resize = resizeVal);
+                alert("Resize settings applied to ALL files!");
             } else {
-                resetResize();
+                // Terapkan ke file SAAT INI saja
+                if (activeIndex > -1) {
+                    filesData[activeIndex].resize = resizeVal;
+                }
             }
+            
+            // Update Badge di Preview
+            updateResizeBadge();
             toggleResize();
         }
+
         function resetResize() {
-            resizeConfig = { w: null, h: null };
             widthInput.value = '';
             heightInput.value = '';
-            resizeLabel.classList.add('hidden');
-            toggleResize();
+            applyResize('single'); // Reset hanya yang aktif (atau bisa logic lain)
+        }
+
+        function updateResizeBadge() {
+            if (activeIndex > -1 && filesData[activeIndex].resize) {
+                const r = filesData[activeIndex].resize;
+                resizeBadge.classList.remove('hidden');
+                resizeBadge.textContent = `RESIZED: ${r.w}x${r.h}`;
+            } else {
+                resizeBadge.classList.add('hidden');
+            }
         }
 
         // --- UI & FLIP ---
         function updateBtnText() {
             if(isProcessing) return;
             if(isProcessDone) {
-                // Jika selesai, tombol jadi Download ZIP
                 actionBtn.innerHTML = `<i class="fa-solid fa-file-zipper"></i> <span>DOWNLOAD ALL ZIP</span>`;
                 actionBtn.classList.replace('bg-[#db2777]', 'bg-green-600');
                 actionBtn.classList.replace('hover:bg-[#be185d]', 'hover:bg-green-700');
@@ -229,15 +252,20 @@
         updateBtnText();
 
         function toggleMenu() { document.getElementById('menuOverlay').classList.toggle('hidden'); }
-        function flipBack() { flipper.classList.remove('flipped'); }
+        function flipBack() { flipper.classList.remove('flipped'); activeIndex = -1; }
         
         // --- FILE HANDLING ---
         fileInput.addEventListener('change', (e) => {
             const newFiles = Array.from(e.target.files);
             if(newFiles.length) {
-                isProcessDone = false; // Reset status jika upload baru
+                isProcessDone = false;
                 newFiles.forEach(f => {
-                    filesData.push({ file: f, status: 'pending', id: Math.random().toString(36).substr(2, 9) });
+                    filesData.push({ 
+                        file: f, 
+                        status: 'pending', 
+                        id: Math.random().toString(36).substr(2, 9),
+                        resize: null // Default tanpa resize
+                    });
                 });
                 renderList();
                 updateBtnText();
@@ -266,6 +294,12 @@
                 let textClass = 'text-slate-500';
                 let statusText = 'READY';
                 let iconAction = `<button onclick="removeFile('${item.id}')" class="btn-action w-8 h-8 rounded bg-slate-800 hover:bg-red-500/20 hover:text-red-500 text-slate-500 flex items-center justify-center transition-colors z-10"><i class="fa-solid fa-trash"></i></button>`;
+
+                // Cek jika ada resize
+                if (item.resize) {
+                    statusText = `READY (${item.resize.w}x${item.resize.h})`;
+                    textClass = 'text-pink-400';
+                }
 
                 if (item.status === 'converting') {
                     borderClass = 'border-pink-500/50 shadow-[0_0_10px_rgba(236,72,153,0.1)]';
@@ -310,8 +344,11 @@
         }
 
         function openPreview(index) {
+            activeIndex = index; // Set aktif index untuk resize logic
             const item = filesData[index];
             previewTitle.textContent = item.file.name;
+            updateResizeBadge(); // Cek apakah file ini punya setting resize
+
             if (item.file.type.startsWith('image/') || item.file.name.match(/\.(png|jpg|jpeg|webp|gif|bmp|ico)$/i)) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -334,14 +371,9 @@
             updateBtnText();
         }
 
-        // --- MAIN ACTION (CONVERT OR DOWNLOAD ZIP) ---
+        // --- MAIN PROCESS ---
         window.handleMainAction = async function() {
-            // Jika status sudah done, maka fungsinya Download ZIP
-            if (isProcessDone) {
-                downloadAllZip();
-                return;
-            }
-            // Jika belum, jalankan Convert
+            if (isProcessDone) { downloadAllZip(); return; }
             startProcess();
         }
 
@@ -362,11 +394,12 @@
                     const up = await fetch('/upload', {method:'POST', body:fd}).then(r=>r.json());
                     
                     if(up.success) {
+                        // KIRIM DATA RESIZE PER FILE
                         const payload = {
                             file_id: up.file_id, 
                             format: formatSelect.value,
-                            width: resizeConfig.w,
-                            height: resizeConfig.h
+                            width: item.resize ? item.resize.w : null,
+                            height: item.resize ? item.resize.h : null
                         };
                         const conv = await fetch('/convert', {
                             method:'POST', 
@@ -376,7 +409,7 @@
                         
                         if(conv.success) {
                             item.status = 'success';
-                            item.serverId = up.file_id; // Simpan ID untuk ZIP nanti
+                            item.serverId = up.file_id; 
                             item.resultName = conv.name;
                         } else { item.status = 'error'; }
                     } else { item.status = 'error'; }
@@ -385,38 +418,28 @@
             }
 
             isProcessing = false;
-            isProcessDone = true; // Tandai selesai
-            updateBtnText(); // Ubah tombol jadi Download ZIP
+            isProcessDone = true;
+            updateBtnText();
         }
 
         async function downloadAllZip() {
             const successFiles = filesData.filter(f => f.status === 'success').map(f => f.serverId);
             if(successFiles.length === 0) return alert("No converted files to zip.");
-
             actionBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> ZIPPING...';
-            
             try {
                 const response = await fetch('/download_zip', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ file_ids: successFiles })
                 });
-                
                 if(response.ok) {
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url;
-                    a.download = "Converted_Files.zip";
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                } else {
-                    alert("Failed to create ZIP");
-                }
+                    a.href = url; a.download = "Converted_Files.zip";
+                    document.body.appendChild(a); a.click(); a.remove();
+                } else { alert("Failed to create ZIP"); }
             } catch(e) { alert("Error downloading ZIP"); }
-
-            // Balikin teks tombol
             updateBtnText();
         }
     </script>
