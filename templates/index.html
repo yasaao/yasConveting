@@ -171,4 +171,254 @@
         const fileInput = document.getElementById('fileInput');
         const actionBtn = document.getElementById('actionBtn');
         const formatSelect = document.getElementById('formatSelect');
-        const flipper = document.getElemen
+        const flipper = document.getElementById('cardFlipper');
+        const previewImg = document.getElementById('previewImage');
+        const previewIcon = document.getElementById('previewIcon');
+        const previewTitle = document.getElementById('previewTitle');
+        const resizeOverlay = document.getElementById('resizeOverlay');
+        const resizeLabel = document.getElementById('resizeLabel');
+        const widthInput = document.getElementById('widthInput');
+        const heightInput = document.getElementById('heightInput');
+
+        let filesData = []; 
+        let isProcessing = false;
+        let isProcessDone = false; // Status konversi selesai
+        let resizeConfig = { w: null, h: null }; // Global resize config
+
+        // --- RESIZE LOGIC ---
+        function toggleResize() {
+            resizeOverlay.classList.toggle('hidden');
+        }
+        function applyResize() {
+            const w = widthInput.value;
+            const h = heightInput.value;
+            if(w && h) {
+                resizeConfig = { w: w, h: h };
+                resizeLabel.classList.remove('hidden');
+                resizeLabel.textContent = `RESIZE: ${w}x${h}`;
+            } else {
+                resetResize();
+            }
+            toggleResize();
+        }
+        function resetResize() {
+            resizeConfig = { w: null, h: null };
+            widthInput.value = '';
+            heightInput.value = '';
+            resizeLabel.classList.add('hidden');
+            toggleResize();
+        }
+
+        // --- UI & FLIP ---
+        function updateBtnText() {
+            if(isProcessing) return;
+            if(isProcessDone) {
+                // Jika selesai, tombol jadi Download ZIP
+                actionBtn.innerHTML = `<i class="fa-solid fa-file-zipper"></i> <span>DOWNLOAD ALL ZIP</span>`;
+                actionBtn.classList.replace('bg-[#db2777]', 'bg-green-600');
+                actionBtn.classList.replace('hover:bg-[#be185d]', 'hover:bg-green-700');
+            } else {
+                const fmt = formatSelect.value.toUpperCase();
+                const span = actionBtn.querySelector('span');
+                if(span) span.innerText = `CONVERT .${fmt}`;
+                actionBtn.classList.replace('bg-green-600', 'bg-[#db2777]');
+                actionBtn.classList.replace('hover:bg-green-700', 'hover:bg-[#be185d]');
+            }
+        }
+        formatSelect.addEventListener('change', updateBtnText);
+        updateBtnText();
+
+        function toggleMenu() { document.getElementById('menuOverlay').classList.toggle('hidden'); }
+        function flipBack() { flipper.classList.remove('flipped'); }
+        
+        // --- FILE HANDLING ---
+        fileInput.addEventListener('change', (e) => {
+            const newFiles = Array.from(e.target.files);
+            if(newFiles.length) {
+                isProcessDone = false; // Reset status jika upload baru
+                newFiles.forEach(f => {
+                    filesData.push({ file: f, status: 'pending', id: Math.random().toString(36).substr(2, 9) });
+                });
+                renderList();
+                updateBtnText();
+            }
+        });
+
+        function renderList() {
+            const listScroll = document.getElementById('fileListScroll');
+            const emptyState = document.getElementById('emptyState');
+            const listContainer = document.getElementById('listContainer');
+
+            if (filesData.length === 0) {
+                emptyState.classList.remove('hidden');
+                listContainer.classList.add('hidden');
+                actionBtn.disabled = true;
+                return;
+            }
+            emptyState.classList.add('hidden');
+            listContainer.classList.remove('hidden');
+            actionBtn.disabled = isProcessing;
+            listScroll.innerHTML = ''; 
+
+            filesData.forEach((item, index) => {
+                const el = document.createElement('div');
+                let borderClass = 'border-slate-800 hover:border-slate-600';
+                let textClass = 'text-slate-500';
+                let statusText = 'READY';
+                let iconAction = `<button onclick="removeFile('${item.id}')" class="btn-action w-8 h-8 rounded bg-slate-800 hover:bg-red-500/20 hover:text-red-500 text-slate-500 flex items-center justify-center transition-colors z-10"><i class="fa-solid fa-trash"></i></button>`;
+
+                if (item.status === 'converting') {
+                    borderClass = 'border-pink-500/50 shadow-[0_0_10px_rgba(236,72,153,0.1)]';
+                    textClass = 'text-pink-400 animate-pulse';
+                    statusText = 'PROCESSING...';
+                    iconAction = `<i class="fa-solid fa-circle-notch fa-spin text-pink-500"></i>`;
+                } else if (item.status === 'success') {
+                    borderClass = 'border-green-500/30';
+                    textClass = 'text-green-400';
+                    statusText = 'DONE';
+                    iconAction = `<a href="/download/${item.serverId}" class="btn-action w-8 h-8 rounded bg-green-600 hover:bg-green-500 text-white flex items-center justify-center z-10"><i class="fa-solid fa-download"></i></a>`;
+                } else if (item.status === 'error') {
+                    borderClass = 'border-red-500/30';
+                    textClass = 'text-red-400';
+                    statusText = 'FAILED';
+                }
+
+                el.className = `p-3 rounded-lg border bg-[#020617] flex items-center justify-between transition-all cursor-pointer group ${borderClass}`;
+                el.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center flex-shrink-0 text-slate-500">${getFileIcon(item.file.name)}</div>
+                        <div class="flex flex-col min-w-0">
+                            <span class="text-xs font-bold text-gray-300 truncate w-32">${item.resultName || item.file.name}</span>
+                            <span class="text-[10px] ${textClass} font-medium uppercase tracking-wide">${statusText}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">${iconAction}</div>
+                `;
+                el.onclick = (e) => {
+                    if (e.target.closest('.btn-action')) return;
+                    if (isProcessing) return; 
+                    openPreview(index);
+                };
+                listScroll.appendChild(el);
+            });
+        }
+
+        function getFileIcon(name) {
+            if (name.endsWith('.zip')) return '<i class="fa-solid fa-file-zipper"></i>';
+            if (name.endsWith('.dds')) return '<i class="fa-solid fa-cube"></i>';
+            return '<i class="fa-regular fa-image"></i>';
+        }
+
+        function openPreview(index) {
+            const item = filesData[index];
+            previewTitle.textContent = item.file.name;
+            if (item.file.type.startsWith('image/') || item.file.name.match(/\.(png|jpg|jpeg|webp|gif|bmp|ico)$/i)) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('hidden');
+                    previewIcon.classList.add('hidden');
+                };
+                reader.readAsDataURL(item.file);
+            } else {
+                previewImg.classList.add('hidden');
+                previewIcon.classList.remove('hidden');
+            }
+            flipper.classList.add('flipped');
+        }
+
+        window.removeFile = function(id) {
+            filesData = filesData.filter(f => f.id !== id);
+            isProcessDone = false; 
+            renderList();
+            updateBtnText();
+        }
+
+        // --- MAIN ACTION (CONVERT OR DOWNLOAD ZIP) ---
+        window.handleMainAction = async function() {
+            // Jika status sudah done, maka fungsinya Download ZIP
+            if (isProcessDone) {
+                downloadAllZip();
+                return;
+            }
+            // Jika belum, jalankan Convert
+            startProcess();
+        }
+
+        async function startProcess() {
+            isProcessing = true;
+            renderList();
+            actionBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>WORKING...</span>';
+            
+            const queue = filesData.filter(f => f.status === 'pending');
+            if (queue.length === 0) { isProcessing = false; renderList(); updateBtnText(); return; }
+
+            for (let item of queue) {
+                item.status = 'converting';
+                renderList();
+                try {
+                    const fd = new FormData();
+                    fd.append('file', item.file);
+                    const up = await fetch('/upload', {method:'POST', body:fd}).then(r=>r.json());
+                    
+                    if(up.success) {
+                        const payload = {
+                            file_id: up.file_id, 
+                            format: formatSelect.value,
+                            width: resizeConfig.w,
+                            height: resizeConfig.h
+                        };
+                        const conv = await fetch('/convert', {
+                            method:'POST', 
+                            headers:{'Content-Type':'application/json'},
+                            body: JSON.stringify(payload)
+                        }).then(r=>r.json());
+                        
+                        if(conv.success) {
+                            item.status = 'success';
+                            item.serverId = up.file_id; // Simpan ID untuk ZIP nanti
+                            item.resultName = conv.name;
+                        } else { item.status = 'error'; }
+                    } else { item.status = 'error'; }
+                } catch(e) { item.status = 'error'; }
+                renderList(); 
+            }
+
+            isProcessing = false;
+            isProcessDone = true; // Tandai selesai
+            updateBtnText(); // Ubah tombol jadi Download ZIP
+        }
+
+        async function downloadAllZip() {
+            const successFiles = filesData.filter(f => f.status === 'success').map(f => f.serverId);
+            if(successFiles.length === 0) return alert("No converted files to zip.");
+
+            actionBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> ZIPPING...';
+            
+            try {
+                const response = await fetch('/download_zip', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ file_ids: successFiles })
+                });
+                
+                if(response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "Converted_Files.zip";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    alert("Failed to create ZIP");
+                }
+            } catch(e) { alert("Error downloading ZIP"); }
+
+            // Balikin teks tombol
+            updateBtnText();
+        }
+    </script>
+</body>
+</html>
