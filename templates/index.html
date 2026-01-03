@@ -2,42 +2,55 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>yasConvert | Convert your file!</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body { font-family: 'Inter', sans-serif; background: #020617; }
+        /* BODY LOCK & BASE */
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: #020617; font-family: 'Inter', sans-serif;
+            position: fixed; /* Kunci layar */
+        }
+
+        /* 3D Flip Utilities */
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
-        .backface-hidden { backface-visibility: hidden; }
+        .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
         .flip-container { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
         .flipped { transform: rotateY(180deg); }
-        .modal-enter { animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .modal-exit { animation: popOut 0.2s ease-in forwards; }
+
+        /* SCROLL HIDDEN */
+        .hide-scroll {
+            overflow-y: auto; overflow-x: hidden;
+            -ms-overflow-style: none; scrollbar-width: none;
+            -webkit-overflow-scrolling: touch; 
+        }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+
+        /* Animation */
+        .modal-enter { animation: popIn 0.2s forwards; }
+        .modal-exit { animation: popOut 0.2s forwards; }
         @keyframes popIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes popOut { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.95); } }
-        
-        /* Custom Range Slider */
+
+        /* Inputs */
         input[type=range] { -webkit-appearance: none; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #db2777; margin-top: -6px; cursor: pointer; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
-        input[type=range]:focus::-webkit-slider-runnable-track { background: #475569; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         
-        /* Remove arrows from number input */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        /* Fix Button Clicks: Icons tidak boleh menghalangi klik button */
+        button i { pointer-events: none; }
     </style>
 </head>
-<body class="text-gray-200 min-h-screen flex items-center justify-center p-4">
+<body class="text-gray-200 flex items-center justify-center">
 
-    <div class="w-full max-w-[380px] bg-[#0f172a] rounded-2xl border border-slate-800 shadow-2xl relative flex flex-col h-[650px] overflow-hidden">
+    <div class="w-full max-w-[380px] bg-[#0f172a] rounded-2xl border border-slate-800 shadow-2xl relative flex flex-col h-[85vh] max-h-[700px] overflow-hidden">
         
         <!-- Header -->
         <div class="px-6 py-5 flex justify-between items-center bg-[#0f172a] z-20 border-b border-slate-800/50 flex-shrink-0">
@@ -48,17 +61,17 @@
                     <p class="text-[10px] text-slate-400 font-bold tracking-wider">v2.0</p>
                 </div>
             </div>
-            <button onclick="toggleMenu()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center">
+            <button onclick="toggleMenu()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center z-50 cursor-pointer">
                 <i class="fa-solid fa-bars"></i>
             </button>
         </div>
 
         <!-- Flipper Content -->
-        <div class="flex-1 relative perspective-1000 overflow-hidden m-4 mb-2">
+        <div class="flex-1 relative perspective-1000 overflow-hidden m-4 mb-2 min-h-0">
             <div id="cardFlipper" class="relative w-full h-full transform-style-3d flip-container">
                 
-                <!-- FRONT: LIST -->
-                <div class="absolute inset-0 backface-hidden bg-[#020617] rounded-xl border-2 border-slate-800 flex flex-col">
+                <!-- FRONT: LIST FILES (Z-INDEX 10 DEFAULT) -->
+                <div id="frontFace" class="absolute inset-0 backface-hidden bg-[#020617] rounded-xl border-2 border-slate-800 flex flex-col overflow-hidden z-10">
                     <div id="emptyState" class="flex-1 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-900/50 transition-colors group" onclick="document.getElementById('fileInput').click()">
                         <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-500 group-hover:text-pink-500"></i>
@@ -67,45 +80,35 @@
                         <p class="text-[10px] text-slate-600 mt-1 uppercase">PNG, JPG, DDS, PSD, ZIP</p>
                     </div>
 
-                    <div id="listContainer" class="hidden flex-col h-full">
-                        <div class="p-3 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center flex-shrink-0">
+                    <div id="listContainer" class="hidden flex flex-col h-full w-full">
+                        <div class="p-3 bg-slate-900/90 backdrop-blur border-b border-slate-800 flex justify-between items-center flex-shrink-0 z-10">
                             <span class="text-xs font-bold text-slate-400">FILE LIST</span>
-                            <button onclick="document.getElementById('fileInput').click()" class="text-[10px] bg-slate-800 px-2 py-1 rounded text-white hover:bg-pink-600 transition">+ ADD</button>
+                            <div class="flex items-center gap-2">
+                                <button onclick="clearAllFiles()" class="text-[10px] bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition flex items-center gap-1 font-bold z-20 cursor-pointer">
+                                    <i class="fa-solid fa-trash-can"></i> CLEAR
+                                </button>
+                                <button onclick="document.getElementById('fileInput').click()" class="text-[10px] bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-white hover:bg-pink-600 hover:border-pink-500 transition flex items-center gap-1 font-bold z-20 cursor-pointer">
+                                    <i class="fa-solid fa-plus"></i> ADD
+                                </button>
+                            </div>
                         </div>
-                        <div id="fileListScroll" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+                        <div id="fileListScroll" class="flex-1 hide-scroll p-2 space-y-2 relative"></div>
                     </div>
                 </div>
 
-                <!-- BACK: PREVIEW & TOOLS -->
-                <div class="absolute inset-0 backface-hidden rotate-y-180 bg-[#020617] rounded-xl border-2 border-pink-500/30 flex flex-col overflow-hidden">
+                <!-- BACK: PREVIEW & TOOLS (Z-INDEX 0 DEFAULT) -->
+                <div id="backFace" class="absolute inset-0 backface-hidden rotate-y-180 bg-[#020617] rounded-xl border-2 border-pink-500/30 flex flex-col overflow-hidden z-0">
                     <div class="p-3 bg-slate-900/80 border-b border-slate-800 flex justify-between items-center z-10 flex-shrink-0">
                         <span class="text-xs font-bold text-white truncate max-w-[100px]" id="previewTitle">file.png</span>
-                        
                         <div class="flex gap-2">
-                            <!-- TOMBOL EDIT (SLIDER) -->
-                            <button onclick="toggleAdjust()" class="w-6 h-6 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-blue-600 transition-colors" title="Adjust Colors">
-                                <i class="fa-solid fa-sliders text-[10px]"></i>
-                            </button>
-                            <!-- TOMBOL RESIZE -->
-                            <button onclick="toggleResize()" class="w-6 h-6 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-pink-600 transition-colors" title="Resize Image">
-                                <i class="fa-solid fa-ruler-combined text-[10px]"></i>
-                            </button>
-                            <!-- TOMBOL CLOSE -->
-                            <button onclick="flipBack()" class="w-6 h-6 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-red-500 transition-colors">
-                                <i class="fa-solid fa-xmark text-xs"></i>
-                            </button>
+                            <button onclick="toggleAdjust()" class="w-8 h-8 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-blue-600 transition-colors z-50 cursor-pointer shadow-lg"><i class="fa-solid fa-sliders text-xs"></i></button>
+                            <button onclick="toggleResize()" class="w-8 h-8 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-pink-600 transition-colors z-50 cursor-pointer shadow-lg"><i class="fa-solid fa-ruler-combined text-xs"></i></button>
+                            <button onclick="flipBack()" class="w-8 h-8 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-red-500 transition-colors z-50 cursor-pointer shadow-lg"><i class="fa-solid fa-xmark text-sm"></i></button>
                         </div>
                     </div>
-                    
-                    <!-- Preview Image Area -->
                     <div class="flex-1 flex items-center justify-center p-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+PHBhdGggZD0iTTAgMEg1VjVIMFpNNSA1SDEwVjEwSDVaIiBmaWxsPSIjMWUyOTNiIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')] relative overflow-hidden">
-                        
-                        <!-- Gambar Preview (Akan kena CSS Filter) -->
                         <img id="previewImage" class="max-w-full max-h-full object-contain shadow-lg rounded transition-all duration-200" alt="Preview">
-                        
                         <div id="previewIcon" class="hidden text-center"><i class="fa-solid fa-file-zipper text-5xl text-pink-500"></i></div>
-                        
-                        <!-- Badges -->
                         <div class="absolute bottom-3 flex gap-1 justify-center w-full pointer-events-none">
                             <div id="resizeBadge" class="hidden bg-pink-500/90 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-lg">RESIZED</div>
                             <div id="adjustBadge" class="hidden bg-blue-500/90 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-lg">EDITED</div>
@@ -136,7 +139,7 @@
                 </div>
             </div>
 
-            <button id="actionBtn" onclick="handleMainAction()" class="w-full bg-[#db2777] hover:bg-[#be185d] disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg transition-all active:scale-95 uppercase text-xs tracking-widest flex items-center justify-center gap-2">
+            <button id="actionBtn" onclick="handleMainAction()" class="w-full bg-[#db2777] hover:bg-[#be185d] disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg transition-all active:scale-95 uppercase text-xs tracking-widest flex items-center justify-center gap-2 cursor-pointer z-20">
                 <i class="fa-solid fa-bolt"></i>
                 <span>CONVERT .BMP</span>
             </button>
@@ -145,14 +148,16 @@
         <input type="file" id="fileInput" class="hidden" multiple accept="image/*,.zip,.dds,.tga,.psd,.ico,.tiff">
     </div>
 
+    <!-- MODALS -->
+    
     <!-- RESIZE MODAL -->
     <div id="resizeOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center" onclick="toggleResize()">
         <div class="bg-[#0f172a] w-64 rounded-2xl border border-slate-700 p-5 text-center transform scale-95 transition-all shadow-2xl" onclick="event.stopPropagation()">
             <h2 class="text-white font-bold mb-4 tracking-widest text-sm border-b border-slate-800 pb-3">RESIZE SETTINGS</h2>
             <div class="flex items-center gap-2 mb-4">
-                <div class="flex-1"><label class="text-[10px] text-slate-500 font-bold block mb-1">WIDTH / LEBAR</label><input type="number" id="widthInput" placeholder="Auto" class="w-full bg-[#020617] border border-slate-700 rounded-lg p-2 text-white text-center text-sm focus:border-pink-500 outline-none"></div>
+                <div class="flex-1"><label class="text-[10px] text-slate-500 font-bold block mb-1">WIDTH</label><input type="number" id="widthInput" placeholder="Auto" class="w-full bg-[#020617] border border-slate-700 rounded-lg p-2 text-white text-center text-sm focus:border-pink-500 outline-none"></div>
                 <span class="text-slate-600 mt-4">x</span>
-                <div class="flex-1"><label class="text-[10px] text-slate-500 font-bold block mb-1">HEIGHT / TINGGI</label><input type="number" id="heightInput" placeholder="Auto" class="w-full bg-[#020617] border border-slate-700 rounded-lg p-2 text-white text-center text-sm focus:border-pink-500 outline-none"></div>
+                <div class="flex-1"><label class="text-[10px] text-slate-500 font-bold block mb-1">HEIGHT</label><input type="number" id="heightInput" placeholder="Auto" class="w-full bg-[#020617] border border-slate-700 rounded-lg p-2 text-white text-center text-sm focus:border-pink-500 outline-none"></div>
             </div>
             <div class="space-y-2">
                 <button onclick="applyResize('single')" class="w-full bg-[#db2777] hover:bg-pink-600 text-white font-bold py-2 rounded-xl text-xs">APPLY</button>
@@ -162,13 +167,11 @@
         </div>
     </div>
 
-    <!-- ADJUST MODAL (BRIGHT/CONTRAST/SATURATION) - UPDATED WITH INPUT SYNC -->
+    <!-- ADJUST MODAL -->
     <div id="adjustOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center" onclick="toggleAdjust()">
         <div class="bg-[#0f172a] w-72 rounded-2xl border border-slate-700 p-5 transform scale-95 transition-all shadow-2xl" onclick="event.stopPropagation()">
             <h2 class="text-white font-bold mb-4 tracking-widest text-center text-sm border-b border-slate-800 pb-3">IMAGE ADJUSTMENTS</h2>
-            
             <div class="space-y-4 mb-5">
-                <!-- Brightness -->
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 mb-1 block">BRIGHTNESS</label>
                     <div class="flex items-center gap-3">
@@ -176,8 +179,6 @@
                         <input type="number" id="numBright" min="0" max="200" value="100" class="w-14 bg-[#020617] border border-slate-700 rounded-lg py-1 text-center text-xs text-white focus:border-blue-500 outline-none font-mono" oninput="syncInput('Bright', 'num')">
                     </div>
                 </div>
-                
-                <!-- Contrast -->
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 mb-1 block">CONTRAST</label>
                     <div class="flex items-center gap-3">
@@ -185,8 +186,6 @@
                         <input type="number" id="numContrast" min="0" max="200" value="100" class="w-14 bg-[#020617] border border-slate-700 rounded-lg py-1 text-center text-xs text-white focus:border-blue-500 outline-none font-mono" oninput="syncInput('Contrast', 'num')">
                     </div>
                 </div>
-                
-                <!-- Saturation -->
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 mb-1 block">SATURATION</label>
                     <div class="flex items-center gap-3">
@@ -195,7 +194,6 @@
                     </div>
                 </div>
             </div>
-            
             <div class="space-y-2">
                 <button onclick="applyAdjust('single')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-xl text-xs">APPLY</button>
                 <button onclick="applyAdjust('all')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-blue-500 text-white font-bold py-2 rounded-xl text-xs">APPLY TO ALL</button>
@@ -215,31 +213,24 @@
     </div>
 
     <script>
-        // DOM Elements
         const fileInput = document.getElementById('fileInput');
         const actionBtn = document.getElementById('actionBtn');
         const formatSelect = document.getElementById('formatSelect');
         const flipper = document.getElementById('cardFlipper');
+        const frontFace = document.getElementById('frontFace');
+        const backFace = document.getElementById('backFace');
         const previewImg = document.getElementById('previewImage');
         const previewIcon = document.getElementById('previewIcon');
         const previewTitle = document.getElementById('previewTitle');
-        
-        // Badges
         const resizeBadge = document.getElementById('resizeBadge');
         const adjustBadge = document.getElementById('adjustBadge');
-
-        // Resize Elements
         const resizeOverlay = document.getElementById('resizeOverlay');
         const widthInput = document.getElementById('widthInput');
         const heightInput = document.getElementById('heightInput');
-
-        // Adjust Elements (Slider)
         const adjustOverlay = document.getElementById('adjustOverlay');
         const inputBright = document.getElementById('inputBright');
         const inputContrast = document.getElementById('inputContrast');
         const inputSat = document.getElementById('inputSat');
-        
-        // Adjust Elements (Input Angka)
         const numBright = document.getElementById('numBright');
         const numContrast = document.getElementById('numContrast');
         const numSat = document.getElementById('numSat');
@@ -249,8 +240,8 @@
         let isProcessing = false;
         let isProcessDone = false;
 
-        // --- MENU & TOGGLES ---
         function toggleMenu() { document.getElementById('menuOverlay').classList.toggle('hidden'); }
+        
         function toggleResize() {
             if (resizeOverlay.classList.contains('hidden') && activeIndex > -1) {
                 const current = filesData[activeIndex].resize || { w: '', h: '' };
@@ -259,20 +250,27 @@
             resizeOverlay.classList.toggle('hidden');
         }
 
-        // --- ADJUSTMENT LOGIC (SYNCED) ---
+        // --- CLEAR & RESET ---
+        function clearAllFiles() {
+            if(isProcessing) return;
+            filesData = []; isProcessDone = false;
+            fileInput.value = '';
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.getElementById('listContainer').classList.add('hidden');
+            document.getElementById('fileListScroll').innerHTML = '';
+            actionBtn.disabled = true;
+            updateBtnText();
+        }
+
+        // --- SYNC LOGIC ---
         function syncInput(type, source) {
             const rangeEl = document.getElementById('input' + type);
             const numEl = document.getElementById('num' + type);
-            
-            if (source === 'range') {
-                numEl.value = rangeEl.value;
-            } else {
+            if (source === 'range') { numEl.value = rangeEl.value; } 
+            else {
                 let val = parseInt(numEl.value);
-                if(isNaN(val)) val = 100;
-                if(val > 200) val = 200;
-                if(val < 0) val = 0;
-                numEl.value = val;
-                rangeEl.value = val;
+                if(isNaN(val)) val = 100; if(val > 200) val = 200; if(val < 0) val = 0;
+                numEl.value = val; rangeEl.value = val;
             }
             livePreviewAdjust();
         }
@@ -280,46 +278,26 @@
         function toggleAdjust() {
             if (adjustOverlay.classList.contains('hidden') && activeIndex > -1) {
                 const adj = filesData[activeIndex].adjustments || { b: 100, c: 100, s: 100 };
-                
-                // Set Slider
-                inputBright.value = adj.b;
-                inputContrast.value = adj.c;
-                inputSat.value = adj.s;
-                
-                // Set Number
-                numBright.value = adj.b;
-                numContrast.value = adj.c;
-                numSat.value = adj.s;
-
+                inputBright.value = adj.b; numBright.value = adj.b;
+                inputContrast.value = adj.c; numContrast.value = adj.c;
+                inputSat.value = adj.s; numSat.value = adj.s;
                 livePreviewAdjust();
             }
             adjustOverlay.classList.toggle('hidden');
         }
 
         function livePreviewAdjust() {
-            const b = inputBright.value;
-            const c = inputContrast.value;
-            const s = inputSat.value;
+            const b = inputBright.value; const c = inputContrast.value; const s = inputSat.value;
             previewImg.style.filter = `brightness(${b}%) contrast(${c}%) saturate(${s}%)`;
         }
 
         function applyAdjust(scope) {
-            const adj = { 
-                b: parseInt(inputBright.value), 
-                c: parseInt(inputContrast.value), 
-                s: parseInt(inputSat.value) 
-            };
+            const adj = { b: parseInt(inputBright.value), c: parseInt(inputContrast.value), s: parseInt(inputSat.value) };
             const isModified = (adj.b !== 100 || adj.c !== 100 || adj.s !== 100);
             const finalData = isModified ? adj : null;
-
-            if (scope === 'all') {
-                filesData.forEach(f => f.adjustments = finalData);
-                alert("Applied to ALL!");
-            } else {
-                if (activeIndex > -1) filesData[activeIndex].adjustments = finalData;
-            }
-            updateBadges();
-            toggleAdjust();
+            if (scope === 'all') { filesData.forEach(f => f.adjustments = finalData); alert("Applied to ALL!"); }
+            else { if (activeIndex > -1) filesData[activeIndex].adjustments = finalData; }
+            updateBadges(); toggleAdjust();
         }
 
         function resetAdjust() {
@@ -329,14 +307,17 @@
             livePreviewAdjust();
         }
 
-        // --- PREVIEW LOGIC (UPDATED FOR TGA/DDS/PSD) ---
+        // --- PREVIEW (FIXED Z-INDEX) ---
         async function openPreview(index) {
             activeIndex = index; 
             const item = filesData[index];
             previewTitle.textContent = item.file.name;
             updateBadges(); 
             
+            // FIX TOMBOL GAK BISA DIPENCET: Mainkan Z-Index
             flipper.classList.add('flipped');
+            frontFace.style.zIndex = 0; // Turunkan Front
+            backFace.style.zIndex = 20; // Naikkan Back
 
             const name = item.file.name.toLowerCase();
             const isBrowserSupported = name.match(/\.(png|jpg|jpeg|webp|gif|bmp|ico)$/i);
@@ -346,42 +327,36 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     previewImg.src = e.target.result;
-                    previewImg.classList.remove('hidden');
-                    previewIcon.classList.add('hidden');
+                    previewImg.classList.remove('hidden'); previewIcon.classList.add('hidden');
                 };
                 reader.readAsDataURL(item.file);
             } 
             else if (isSpecialFormat) {
-                previewImg.classList.add('hidden');
-                previewIcon.classList.remove('hidden');
-                previewIcon.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-5xl text-pink-500"></i><p class="text-[10px] mt-2 text-slate-400">LOADING PREVIEW...</p>';
-
+                previewImg.classList.add('hidden'); previewIcon.classList.remove('hidden');
+                previewIcon.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-5xl text-pink-500"></i><p class="text-[10px] mt-2 text-slate-400">LOADING...</p>';
                 try {
-                    const fd = new FormData();
-                    fd.append('file', item.file);
+                    const fd = new FormData(); fd.append('file', item.file);
                     const res = await fetch('/gen_preview', { method: 'POST', body: fd });
-                    
                     if (res.ok) {
-                        const blob = await res.blob();
-                        const url = URL.createObjectURL(blob);
-                        previewImg.src = url;
-                        previewImg.classList.remove('hidden');
-                        previewIcon.classList.add('hidden');
-                    } else { throw new Error("Preview Failed"); }
-                } catch (e) {
-                    previewIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-5xl text-red-500"></i><p class="text-[10px] mt-2 text-red-400">NO PREVIEW</p>';
-                }
+                        const blob = await res.blob(); const url = URL.createObjectURL(blob);
+                        previewImg.src = url; previewImg.classList.remove('hidden'); previewIcon.classList.add('hidden');
+                    } else { throw new Error(); }
+                } catch (e) { previewIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-5xl text-red-500"></i>'; }
             } 
             else {
-                previewImg.classList.add('hidden');
-                previewIcon.classList.remove('hidden');
+                previewImg.classList.add('hidden'); previewIcon.classList.remove('hidden');
                 previewIcon.innerHTML = '<i class="fa-solid fa-file-zipper text-5xl text-pink-500"></i>';
             }
         }
 
-        function flipBack() { flipper.classList.remove('flipped'); activeIndex = -1; }
+        function flipBack() { 
+            flipper.classList.remove('flipped'); 
+            activeIndex = -1;
+            // FIX Z-INDEX
+            frontFace.style.zIndex = 20;
+            backFace.style.zIndex = 0;
+        }
 
-        // --- RESIZE LOGIC ---
         function applyResize(scope) {
             const w = widthInput.value; const h = heightInput.value;
             const resizeVal = (w && h) ? { w: w, h: h } : null;
@@ -391,41 +366,31 @@
         }
         function resetResize() { widthInput.value = ''; heightInput.value = ''; applyResize('single'); }
 
-        // --- SHARED UI ---
         function updateBadges() {
             if (activeIndex === -1) return;
             const item = filesData[activeIndex];
             resizeBadge.classList.toggle('hidden', !item.resize);
             if(item.resize) resizeBadge.textContent = `RESIZED: ${item.resize.w}x${item.resize.h}`;
-            
             adjustBadge.classList.toggle('hidden', !item.adjustments);
-            
             if (item.adjustments) {
                 const {b, c, s} = item.adjustments;
                 previewImg.style.filter = `brightness(${b}%) contrast(${c}%) saturate(${s}%)`;
-            } else {
-                previewImg.style.filter = 'none';
-            }
+            } else { previewImg.style.filter = 'none'; }
         }
 
         function updateBtnText() {
             if(isProcessing) return;
             if(isProcessDone) {
                 actionBtn.innerHTML = `<i class="fa-solid fa-file-zipper"></i> <span>DOWNLOAD ALL ZIP</span>`;
-                actionBtn.classList.replace('bg-[#db2777]', 'bg-green-600');
-                actionBtn.classList.replace('hover:bg-[#be185d]', 'hover:bg-green-700');
+                actionBtn.classList.replace('bg-[#db2777]', 'bg-green-600'); actionBtn.classList.replace('hover:bg-[#be185d]', 'hover:bg-green-700');
             } else {
                 const fmt = formatSelect.value.toUpperCase();
-                const span = actionBtn.querySelector('span');
-                if(span) span.innerText = `CONVERT .${fmt}`;
-                actionBtn.classList.replace('bg-green-600', 'bg-[#db2777]');
-                actionBtn.classList.replace('hover:bg-green-700', 'hover:bg-[#be185d]');
+                const span = actionBtn.querySelector('span'); if(span) span.innerText = `CONVERT .${fmt}`;
+                actionBtn.classList.replace('bg-green-600', 'bg-[#db2777]'); actionBtn.classList.replace('hover:bg-green-700', 'hover:bg-[#be185d]');
             }
         }
-        formatSelect.addEventListener('change', updateBtnText);
-        updateBtnText();
+        formatSelect.addEventListener('change', updateBtnText); updateBtnText();
 
-        // --- FILE LIST & PROCESS ---
         fileInput.addEventListener('change', (e) => {
             const newFiles = Array.from(e.target.files);
             if(newFiles.length) {
@@ -460,10 +425,10 @@
                 else if (item.status === 'error') { borderClass = 'border-red-500/30'; textClass = 'text-red-400'; statusText = 'FAILED'; }
 
                 let iconAction = (item.status === 'success') 
-                    ? `<a href="/download/${item.serverId}" class="btn-action w-8 h-8 rounded bg-green-600 hover:bg-green-500 text-white flex items-center justify-center z-10"><i class="fa-solid fa-download"></i></a>`
+                    ? `<a href="/download/${item.serverId}" class="btn-action w-8 h-8 rounded bg-green-600 hover:bg-green-500 text-white flex items-center justify-center z-10 cursor-pointer"><i class="fa-solid fa-download"></i></a>`
                     : (item.status === 'converting') 
                         ? `<i class="fa-solid fa-circle-notch fa-spin text-pink-500"></i>`
-                        : `<button onclick="removeFile('${item.id}')" class="btn-action w-8 h-8 rounded bg-slate-800 hover:bg-red-500/20 hover:text-red-500 text-slate-500 flex items-center justify-center transition-colors z-10"><i class="fa-solid fa-trash"></i></button>`;
+                        : `<button onclick="removeFile('${item.id}')" class="btn-action w-8 h-8 rounded bg-slate-800 hover:bg-red-500/20 hover:text-red-500 text-slate-500 flex items-center justify-center transition-colors z-10 cursor-pointer"><i class="fa-solid fa-trash"></i></button>`;
 
                 el.className = `p-3 rounded-lg border bg-[#020617] flex items-center justify-between transition-all cursor-pointer group ${borderClass}`;
                 el.innerHTML = `
@@ -491,7 +456,7 @@
         window.handleMainAction = async function() { if (isProcessDone) { downloadAllZip(); return; } startProcess(); }
 
         async function startProcess() {
-            isProcessing = true; renderList(); actionBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>WORKING...</span>';
+            isProcessing = true; renderList(); actionBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>SABAR...</span>';
             const queue = filesData.filter(f => f.status === 'pending');
             if (queue.length === 0) { isProcessing = false; renderList(); updateBtnText(); return; }
 
